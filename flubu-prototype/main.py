@@ -1,8 +1,12 @@
+"""
+This file is based upon the example fem99.py from taichi.
+"""
+
 import taichi as ti
 
 ti.init(arch=ti.gpu)
 
-N = 15
+N = 8
 dt = 1e-4
 dx = 1 / N
 rho = 4e1
@@ -33,20 +37,21 @@ aIsPressed = False
 sIsPressed = False
 dIsPressed = False
 
+
 @ti.kernel
-def update_U():
+def update_u():
     for i in range(NF):
         ia, ib, ic = f2v[i]
         a, b, c = pos[ia], pos[ib], pos[ic]
         V[i] = abs((a - c).cross(b - c))
-        D_i = ti.Matrix.cols([a - c, b - c])
-        F[i] = D_i @ B[i]
+        d_i = ti.Matrix.cols([a - c, b - c])
+        F[i] = d_i @ B[i]
     for i in range(NF):
-        F_i = F[i]
-        log_J_i = ti.log(F_i.determinant())
-        phi_i = mu / 2 * ((F_i.transpose() @ F_i).trace() - 2)
-        phi_i -= mu * log_J_i
-        phi_i += lam / 2 * log_J_i ** 2
+        f_i = F[i]
+        log_j_i = ti.log(f_i.determinant())
+        phi_i = mu / 2 * ((f_i.transpose() @ f_i).trace() - 2)
+        phi_i -= mu * log_j_i
+        phi_i += lam / 2 * log_j_i ** 2
         phi[i] = phi_i
         U[None] += V[i] * phi_i
 
@@ -55,19 +60,22 @@ def update_U():
 def advance():
     for i in range(NV):
         acc = -pos.grad[i] / (rho * dx ** 2)
-        vel[i] += dt * (acc )
+        vel[i] += dt * acc
         vel[i] *= ti.exp(-dt * damping)
     for i in range(NV):
         # ball boundary condition:
         disp = pos[i] - ball_pos
         disp2 = disp.norm_sqr()
         if disp2 <= ball_radius ** 2:
-            NoV = vel[i].dot(disp)
-            if NoV < 0: vel[i] -= NoV * disp / disp2
+            nov = vel[i].dot(disp)
+            if nov < 0:
+                vel[i] -= nov * disp / disp2
         # rect boundary condition:
         cond = pos[i] < 0 and vel[i] < 0 or pos[i] > 1 and vel[i] > 0
-        if cond[0]: vel[i][0] = 0
-        if cond[1]: vel[i][1] = 0
+        if cond[0]:
+            vel[i][0] = 0
+        if cond[1]:
+            vel[i][1] = 0
 
         pos[i] += dt * vel[i]
 
@@ -89,8 +97,8 @@ def init_pos():
     for i in range(NF):
         ia, ib, ic = f2v[i]
         a, b, c = pos[ia], pos[ib], pos[ic]
-        B_i_inv = ti.Matrix.cols([a - c, b - c])
-        B[i] = B_i_inv.inverse()
+        b_i_inv = ti.Matrix.cols([a - c, b - c])
+        B[i] = b_i_inv.inverse()
 
 
 @ti.kernel
@@ -113,26 +121,26 @@ def init_mesh():
 @ti.kernel
 def w_pressed():
     for i in range(NV):
-        acc = -pos.grad[i] / (rho * dx ** 2)
-        vel[i] += dt * ( w_speed)
+        vel[i] += dt * w_speed
+
 
 @ti.kernel
 def a_pressed():
     for i in range(NV):
-        acc = -pos.grad[i] / (rho * dx ** 2)
-        vel[i] += dt * ( a_speed)
+        vel[i] += dt * a_speed
+
 
 @ti.kernel
 def s_pressed():
     for i in range(NV):
-        acc = -pos.grad[i] / (rho * dx ** 2)
-        vel[i] += dt * ( s_speed)
+        vel[i] += dt * s_speed
+
 
 @ti.kernel
 def d_pressed():
     for i in range(NV):
-        acc = -pos.grad[i] / (rho * dx ** 2)
-        vel[i] += dt * ( d_speed)
+        vel[i] += dt * d_speed
+
 
 init_mesh()
 init_pos()
@@ -154,9 +162,9 @@ while gui.running:
         elif e.key == 'd':
             dIsPressed = True
 
-    for i in range(10):
+    for _ in range(10):
         with ti.Tape(loss=U):
-            update_U()
+            update_u()
         if wIsPressed:
             w_pressed()
         if aIsPressed:
