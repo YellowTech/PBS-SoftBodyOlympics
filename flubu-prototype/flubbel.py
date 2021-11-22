@@ -5,23 +5,23 @@ ti.init(arch=ti.gpu)
 
 @ti.data_oriented
 class Flubbel:
-    def __init__(self, dt, speed, damping):
+    def __init__(self, dt: float, speed: float, damping: float):
         self.dt = dt
         self.speed = speed
         self.damping = damping
         self.N = 8  # number of edges in one row i.e. number of vertices - 1
         self.dx = 1 / self.N  # horizontal and vertical edge length
-        self.rho = 6e1  # very small rho is basically a rigid body and a big rho results in a liquid
+        self.rho = 2e1  # very small rho is basically a rigid body and a big rho results in a liquid
         self.NF = 2 * self.N ** 2  # number of faces
         self.NV = (self.N + 1) ** 2  # number of vertices
-        self.E, self.nu = 5e3, 0.4  # Young's modulus and Poisson's ratio
+        self.E, self.nu = 5e4, 0.4  # Young's modulus and Poisson's ratio
         # the poisson's ratio determines how much the volume changes when the material is being stretched
         # 0.5 = no volume change
         # <0.5 = volume bigger
         # <0 = material gets thicken when stretched
         # the higher the youngs thingy the stiffer the material
-        self.mu, self.lam = self.E / 2 / (1 + self.nu), self.E * self.nu / (1 + self.nu) / (1 - 2 * self.nu)  # Lame parameters, based on the phys-parameters above
-
+        self.mu, self.lam = self.E / 2 / (1 + self.nu), self.E * self.nu / (1 + self.nu) / (1 - 2 * self.nu)
+        # Lame parameters, based on the phys-parameters above
         self.pos = ti.Vector.field(2, float, self.NV, needs_grad=True)  # position of the vertices
         self.vel = ti.Vector.field(2, float, self.NV)  # velocity of the vertices
         self.f2v = ti.Vector.field(3, int, self.NF)  # ids of three vertices of each face
@@ -109,8 +109,13 @@ class Flubbel:
             self.f2v[k + 0] = [a, b, c]  # first triangle of each square
             self.f2v[k + 1] = [c, d, a]  # second triangle "  "     "
 
+    def init_flubbel(self):
+        self.init_mesh()
+        self.init_pos()
+
+
     @ti.kernel
-    def controller_input(self, x: int, y: int) -> int:
+    def controller_input(self, x_input: int, y_input: int) -> int:
         """
         applies the controller input,
 
@@ -118,8 +123,9 @@ class Flubbel:
 
         needs a return type for early termination
         """
-        if x == 0 and y == 0:
+        if x_input == 0 and y_input == 0:
             return 0
         for i in range(self.NV):
-            self.vel[i] += self.dt * ti.Vector([x * self.speed, y * self.speed])  # apply the controller input
+            self.vel[i] += self.dt * ti.Vector([x_input * self.speed, y_input * self.speed])  # apply the controller input
         return 0
+
