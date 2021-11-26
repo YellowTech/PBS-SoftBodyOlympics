@@ -9,15 +9,11 @@ damping = 10
 speed = 40 + damping * 2
 
 flubbbuu1 = fl.Flubbel(dt=dt, speed=speed, damping=damping)
+flubbbuu2 = fl.Flubbel(dt=dt, speed=speed, damping=damping)
 flubbbuu1.init_flubbel()
+flubbbuu2.init_flubbel()
 flubbbuu1_controller = co.Controller(up='w', down='s', left='a', right='d')
-
-# uncommenting the line below throws an error :O .... whyyyyyyy!?!?!
-#flubbbuu2 = fl.Flubbel(dt=dt, speed=speed, damping=damping)
-
-
-#flubbbuu2.init_flubbel()
-#flubbbuu2_controller = co.Controller(up='i', down='k', left='j', right='l')
+flubbbuu2_controller = co.Controller(up='i', down='k', left='j', right='l')
 
 gui = ti.GUI('HAPPY FLUBBBU')
 while gui.running:
@@ -29,22 +25,24 @@ while gui.running:
         # reset the game with r
         elif e.key == 'r':
             flubbbuu1.init_pos()
-            #flubbbuu2.init_pos()
+            flubbbuu2.init_pos()
         flubbbuu1_controller.eventiter(e)
-        #flubbbuu2_controller.eventiter(e)
+        flubbbuu2_controller.eventiter(e)
     x1, y1 = flubbbuu1_controller.getinput()
-    #x2, y2 = flubbbuu2_controller.getinput()
+    x2, y2 = flubbbuu2_controller.getinput()
 
     for _ in range(10):
         with ti.Tape(loss=flubbbuu1.U):
             flubbbuu1.update_u()  # update the system
-        '''with ti.Tape(loss=flubbbuu2.U):
-            flubbbuu2.update_u()'''
         flubbbuu1.controller_input(x1, y1)  # use the controller input
-        #flubbbuu2.controller_input(x2, y2)
         flubbbuu1.advance()  # advance the simulation
-        #flubbbuu2.advance()
+
+    for _ in range(10):
+        with ti.Tape(loss=flubbbuu2.U):
+            flubbbuu2.update_u()
+        flubbbuu2.controller_input(x2, y2)
+        flubbbuu2.advance()
 
     gui.circles(flubbbuu1.pos.to_numpy(), radius=2, color=0xffaa33)
-    #gui.circles(flubbbuu2.pos.to_numpy(), radius=2, color=0xfdaa33)
+    gui.circles(flubbbuu2.pos.to_numpy(), radius=2, color=0xfdaa33)
     gui.show()

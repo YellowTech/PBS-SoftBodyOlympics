@@ -109,6 +109,7 @@ class Flubbel:
             self.f2v[k + 0] = [a, b, c]  # first triangle of each square
             self.f2v[k + 1] = [c, d, a]  # second triangle "  "     "
 
+
     def init_flubbel(self):
         self.init_mesh()
         self.init_pos()
