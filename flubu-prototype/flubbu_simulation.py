@@ -5,8 +5,8 @@ import controller as co
 ti.init(arch=ti.gpu)
 
 dt = 1e-4
-damping = 10
-speed = 40 + damping * 2
+damping = 50
+speed = 400 + damping * 2
 
 flubbbuu1 = fl.Flubbel(dt=dt, speed=speed, damping=damping)
 flubbbuu2 = fl.Flubbel(dt=dt, speed=speed, damping=damping)
@@ -31,7 +31,7 @@ while gui.running:
     x1, y1 = flubbbuu1_controller.getinput()
     x2, y2 = flubbbuu2_controller.getinput()
 
-    for _ in range(10):
+    for _ in range(3):
         with ti.Tape(loss=flubbbuu1.U):
             flubbbuu1.update_u()  # update the system
         flubbbuu1.controller_input(x1, y1)  # use the controller input
@@ -42,6 +42,6 @@ while gui.running:
         flubbbuu2.advance()
 
 
-    gui.circles(flubbbuu1.pos.to_numpy(), radius=2, color=0xffaa33)
-    gui.circles(flubbbuu2.pos.to_numpy(), radius=2, color=0xddaa33)
+    gui.circles(flubbbuu1.pos.to_numpy(), radius=10, color=0xffaa33)
+    gui.circles(flubbbuu2.pos.to_numpy(), radius=10, color=0xddaa33)
     gui.show()
