@@ -16,6 +16,7 @@ flubbbuu1_controller = co.Controller(up='w', down='s', left='a', right='d')
 flubbbuu2_controller = co.Controller(up='i', down='k', left='j', right='l')
 
 gui = ti.GUI('HAPPY FLUBBBU')
+gui.background_color = 0xffffff
 while gui.running:
 
     for e in gui.get_events():
@@ -41,7 +42,6 @@ while gui.running:
         flubbbuu2.controller_input(x2, y2)
         flubbbuu2.advance()
 
-
-    gui.circles(flubbbuu1.pos.to_numpy(), radius=10, color=0xffaa33)
-    gui.circles(flubbbuu2.pos.to_numpy(), radius=10, color=0xddaa33)
+    gui.circles(flubbbuu1.pos.to_numpy(), radius=10, color=0x0097a7)
+    gui.circles(flubbbuu2.pos.to_numpy(), radius=10, color=0xffab40)
     gui.show()
