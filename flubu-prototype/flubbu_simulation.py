@@ -36,13 +36,12 @@ while gui.running:
             flubbbuu1.update_u()  # update the system
         flubbbuu1.controller_input(x1, y1)  # use the controller input
         flubbbuu1.advance()  # advance the simulation
-
-    for _ in range(10):
         with ti.Tape(loss=flubbbuu2.U):
             flubbbuu2.update_u()
         flubbbuu2.controller_input(x2, y2)
         flubbbuu2.advance()
 
+
     gui.circles(flubbbuu1.pos.to_numpy(), radius=2, color=0xffaa33)
-    gui.circles(flubbbuu2.pos.to_numpy(), radius=2, color=0xfdaa33)
+    gui.circles(flubbbuu2.pos.to_numpy(), radius=2, color=0xddaa33)
     gui.show()
