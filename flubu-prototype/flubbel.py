@@ -8,12 +8,13 @@ class Flubbel:
     def __init__(self, speed: float, damping: float):
         self.speed = speed
         self.damping = damping
-        self.N = 8  # number of edges in one row i.e. number of vertices - 1
+        self.N = 16  # number of edges in one row i.e. number of vertices - 1
         self.dx = 1 / self.N  # horizontal and vertical edge length
-        self.rho = 2e1  # very small rho is basically a rigid body and a big rho results in a liquid
+        self.rho = 1e1  # very small rho is basically a rigid body and a big rho results in a liquid
         self.NF = 2 * self.N ** 2  # number of faces
         self.NV = (self.N + 1) ** 2  # number of vertices
         self.E, self.nu = 5e4, 0.4  # Young's modulus and Poisson's ratio
+        self.collider_center_idx = int(self.NV / 2)
         # the poisson's ratio determines how much the volume changes when the material is being stretched
         # 0.5 = no volume change
         # <0.5 = volume bigger

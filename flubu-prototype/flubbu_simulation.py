@@ -7,8 +7,8 @@ from typing import List, Set, Dict, Tuple, Optional
 
 ti.init(arch=ti.cpu)
 
-damping = 10
-speed = 40 + damping * 2
+damping = 50
+speed = 400 + damping * 2
 
 Flubbels: List[fl.Flubbel] = [
     fl.Flubbel(speed=speed, damping=damping),
@@ -24,8 +24,8 @@ for flubbel in Flubbels:
     flubbel.init_flubbel()
 
 gui = ti.GUI('HAPPY FLUBBBU')
+gui.background_color = 0xffffff
 gui.fps_limit = 500 # unlimit the fps
-
 lastFrame = time.time() - (1000/60)
 
 while gui.running:
@@ -51,7 +51,7 @@ while gui.running:
                 controller.eventiter(e)
 
     with Timer(text="SIM {:.8f}"):
-        for _ in range(5):
+        for _ in range(3):
             for i, flubbel in enumerate(Flubbels):
                 with ti.Tape(loss=flubbel.U):
                     flubbel.update_u()  # update the system
@@ -61,5 +61,6 @@ while gui.running:
 
     with Timer(text="GUI {:.8f}"):
         for flubbel in Flubbels:
-            gui.circles(flubbel.pos.to_numpy(), radius=2, color=0xffaa33)
+            gui.circles(flubbel.pos.to_numpy(), radius=10, color=0x0097a7)
+            # gui.circles(flubbbuu2.pos.to_numpy(), radius=10, color=0xffab40) the second color
         gui.show()
