@@ -1,6 +1,6 @@
 import taichi as ti
 
-ti.init(arch=ti.gpu)
+# ti.init(arch=ti.gpu)
 
 
 class Controller:
@@ -14,17 +14,16 @@ class Controller:
 
     def eventiter(self, e):
         if e.key == self.up:
-            self.y += 1
+            self.y = 2 - e.type.value # type value: 1 for press, 2 for release
         elif e.key == self.left:
-            self.x -= 1
+            self.x = -2 + e.type.value
         elif e.key == self.down:
-            self.y -= 1
+            self.y = -2 + e.type.value
         elif e.key == self.right:
-            self.x += 1
+            self.x = 2 - e.type.value
 
     def getinput(self):
         x_input, y_input = self.x, self.y
-        self.x, self.y = 0, 0
         return x_input, y_input
 
 

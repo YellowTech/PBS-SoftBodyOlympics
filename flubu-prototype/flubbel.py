@@ -1,12 +1,11 @@
 import taichi as ti
 
-ti.init(arch=ti.gpu)
+# ti.init(arch=ti.gpu)
 
 
 @ti.data_oriented
 class Flubbel:
-    def __init__(self, dt: float, speed: float, damping: float):
-        self.dt = dt
+    def __init__(self, speed: float, damping: float):
         self.speed = speed
         self.damping = damping
         self.N = 8  # number of edges in one row i.e. number of vertices - 1
@@ -56,11 +55,11 @@ class Flubbel:
             self.U[None] += self.V[i] * phi_i
 
     @ti.kernel
-    def advance(self):
+    def advance(self, dt: float):
         for i in range(self.NV):
             acc = -self.pos.grad[i] / (self.rho * self.dx ** 2)  # acceleration based on the negative gradient of the position
-            self.vel[i] += self.dt * acc  # apply the acceleration
-            self.vel[i] *= ti.exp(-self.dt * self.damping)  # apply exp-dampening
+            self.vel[i] += dt * acc  # apply the acceleration
+            self.vel[i] *= ti.exp(-dt * self.damping)  # apply exp-dampening
         for i in range(self.NV):
             # rect boundary condition (the window edges):
             cond = self.pos[i] < 0 and self.vel[i] < 0 or self.pos[i] > 1 and self.vel[i] > 0
@@ -70,7 +69,7 @@ class Flubbel:
             if cond[1]:
                 self.vel[i][1] = 0
             # update the position based on the velocity
-            self.pos[i] += self.dt * self.vel[i]
+            self.pos[i] += dt * self.vel[i]
 
     @ti.kernel
     def init_pos(self):
@@ -116,7 +115,7 @@ class Flubbel:
 
 
     @ti.kernel
-    def controller_input(self, x_input: int, y_input: int) -> int:
+    def controller_input(self, dt: float, x_input: int, y_input: int) -> int:
         """
         applies the controller input,
 
@@ -127,6 +126,6 @@ class Flubbel:
         if x_input == 0 and y_input == 0:
             return 0
         for i in range(self.NV):
-            self.vel[i] += self.dt * ti.Vector([x_input * self.speed, y_input * self.speed])  # apply the controller input
+            self.vel[i] += dt * ti.Vector([x_input * self.speed, y_input * self.speed])  # apply the controller input
         return 0
 
