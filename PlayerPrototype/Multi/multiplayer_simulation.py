@@ -5,17 +5,35 @@ import controller as co
 import time
 from codetiming import Timer
 
+def blend(color, alpha, base=[255,255,255]):
+    '''
+    color should be a 3-element iterable,  elements in [0,255]
+    alpha should be a float in [0,1]
+    base should be a 3-element iterable, elements in [0,255] (defaults to white)
+    '''
+    out = [int(round((alpha * color[i]) + ((1 - alpha) * base[i]))) for i in range(3)]
+
+    return out[0] * 16**4 + out[1] * 255 * 16**2 + out[2]
+
 ti.init(arch=ti.cpu) # , excepthook=True)
 
 renderScale = 20
 
-players = 8 # number of players
+players = 16 # number of players
 
 # the big boy
 multiPlayer = mpl.MultiPlayer(playerCount=players)
 
 # controller for players (must be > than #players)
 playerControllers = [
+    co.Controller(up='w', down='s', left='a', right='d'), 
+    co.Controller(up='i', down='k', left='j', right='l'),
+    co.Controller(up='w', down='s', left='a', right='d'),
+    co.Controller(up='i', down='k', left='j', right='l'),
+    co.Controller(up='w', down='s', left='a', right='d'),
+    co.Controller(up='i', down='k', left='j', right='l'),
+    co.Controller(up='w', down='s', left='a', right='d'),
+    co.Controller(up='i', down='k', left='j', right='l'), # 8
     co.Controller(up='w', down='s', left='a', right='d'),
     co.Controller(up='i', down='k', left='j', right='l'),
     co.Controller(up='w', down='s', left='a', right='d'),
@@ -23,7 +41,7 @@ playerControllers = [
     co.Controller(up='w', down='s', left='a', right='d'),
     co.Controller(up='i', down='k', left='j', right='l'),
     co.Controller(up='w', down='s', left='a', right='d'),
-    co.Controller(up='i', down='k', left='j', right='l')
+    co.Controller(up='i', down='k', left='j', right='l'), # 16
 ]
 
 # array to store all inputs in
@@ -37,6 +55,11 @@ gui.fps_limit = 500 # unlimit the fps
 
 # frame timer to find dt
 lastFrame = time.time() - (1000/60)
+
+gameBegin = time.time()
+
+deathTimer = 5.0
+nextDeath = gameBegin + deathTimer
 
 while gui.running:
     current = time.time()
@@ -100,6 +123,17 @@ while gui.running:
             multiPlayer.advance(dt)  # advance the simulation
 
     with Timer(text="GUI {:.8f}"):
+        # draw death circle
+        if nextDeath < current:
+            # death now!
+            nextDeath += deathTimer
+            multiPlayer.destruction(renderScale/2, renderScale/2, 5)
+        
+        alpha = (nextDeath - current) / deathTimer
+        color = blend([255,0,0], alpha)
+        gui.circle((0.5, 0.5), color, radius = 7.5*renderScale)
+
+
         # get enables mask and use it to get enabled dots
         mask = multiPlayer.enabled.to_numpy()
         mask = list(map(lambda x: False if x > 0 else True,mask))
@@ -127,5 +161,5 @@ while gui.running:
         
         # Draw the dots
         gui.circles(dots, radius=5, color=0x0097a7)
-        
+
         gui.show()
