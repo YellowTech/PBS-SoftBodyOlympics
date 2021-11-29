@@ -16,7 +16,7 @@ class MultiPlayer:
 
         self.input = ti.Vector.field(2, float, self.playerCount) # current inputs
 
-        self.vertPerPlayer = ti.static(3)
+        self.vertPerPlayer = ti.static(32)
         self.vertCount = ti.static(self.vertPerPlayer * self.playerCount)
         self.numLinks = ti.static(self.vertPerPlayer * 3)
 
