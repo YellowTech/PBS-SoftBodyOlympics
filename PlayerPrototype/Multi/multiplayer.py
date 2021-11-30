@@ -161,7 +161,7 @@ class MultiPlayer:
                 point *= self.radius
                 # point[0] += 5
 
-                x = point[0] + 5
+                x = point[0] + 3*p
                 y = point[1]
                 self.pos[self.pv2v(p,i)] = ti.Vector([x,y])
 

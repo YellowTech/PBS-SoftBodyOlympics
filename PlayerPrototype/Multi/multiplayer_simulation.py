@@ -19,7 +19,7 @@ ti.init(arch=ti.cpu) # , excepthook=True)
 
 renderScale = 20
 
-players = 16 # number of players
+players = 2 # number of players
 
 # the big boy
 multiPlayer = mpl.MultiPlayer(playerCount=players)
