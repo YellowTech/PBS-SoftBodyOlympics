@@ -155,8 +155,10 @@ def main():
                 edges_len = num_edges.to_numpy()
                 edges = edges_ti.to_numpy()[:edges_len]
 
-                print(pos)
-                print(edges)
+                #print(pos)
+                #print(edges)
+
+                print('\n\n ------------------------------- \n\n')
 
                 with open('flubbu.npy', 'wb') as f:
                     np.save(f, pos)
@@ -174,6 +176,24 @@ def main():
 
                 # ---------------------
                 # END DEBUG
+
+            elif e.key == 'z':
+                # reset the edges by one
+                if num_particles[None] > 1:
+                    for i in range(num_particles[None] - 1):
+                        rest_length[num_particles[None] - 1, i] = 0.
+                        rest_length[i, num_particles[None] - 1] = 0.
+
+                    # reset our edges DS by the valency of the removed node
+                    while edges_ti[num_edges[None] - 1, 1] == num_particles[None] - 1:
+                        if num_edges[None] > 0:
+                            num_edges[None] -= 1
+
+                # reset the particles by one
+                if num_particles[None] > 0:
+                    num_particles[None] -= 1
+
+
 
 
         if gui.is_pressed(ti.GUI.RMB):
@@ -217,6 +237,9 @@ def main():
                  color=0x0)
         gui.text(content=f'S: Saving flubbu to disk',
                  pos=(0, 0.75),
+                 color=0x0)
+        gui.text(content=f'Z: Undo',
+                 pos=(0, 0.70),
                  color=0x0)
         gui.show()
 
