@@ -29,6 +29,11 @@ class MultiPlayer:
         self.f = ti.Vector.field(2, float, self.vertCount)  # forces of the vertices
         self.links = ti.Vector.field(2, int, self.linkCount)  # if first = -1, then no link
 
+        self.playerCenters = ti.Vector.field(2, float, self.playerCount) # center of all players vertices
+        self.playerVertsActive = ti.field(int, self.playerCount) # number of active verts per player
+
+        self.frame = ti.field(int, 1) # current frame
+
     @ti.pyfunc
     # player vert to vert
     def pl2l(self, playerId: int, link: int) -> int:
@@ -99,7 +104,23 @@ class MultiPlayer:
                 self.vel[i] += self.f[i] * dt
                 self.pos[i] += dt * self.vel[i]
 
+        # calculate the mean center
+        x = self.frame[0] % self.playerCount
+        for p in range(x, x+1):
+            self.playerCenters[p] = zero # reset position
+            self.playerVertsActive[p] = 0
+            # add to centers
+            for i in range(self.pv2v(p,0), self.pv2v(p,self.vertPerPlayer)):
+                if(self.enabled[i]):
+                    self.playerCenters[p] += self.pos[i]
+                    self.playerVertsActive[p] += 1
 
+
+            # self.playerCenters[p] /= ti.Vector([self.playerVertsActive[p],  self.playerVertsActive[p]])
+            self.playerCenters[p] /= self.playerVertsActive[p]
+
+        
+        self.frame[0] += 1
 
     @ti.kernel
     def destruction(self, x:float, y:float, r:float):

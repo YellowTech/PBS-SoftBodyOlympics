@@ -20,8 +20,13 @@ def blend(color, alpha, base=[255,255,255]):
 
 ti.init(arch=ti.cpu) # , excepthook=True)
 
-players = 20 # number of players
+players = 5 # number of players
 playerColors = [[0,0,255] for i in range(players)]
+playerLabels = [pyglet.text.Label(str(x),
+                          font_name='Helvetica', color=(130, 130, 130, 255),
+                          font_size=30,
+                          x=0, y=0,
+                          anchor_x='center', anchor_y='center') for x in range(players)]
 
 # the big boy
 multiPlayer = mpl.MultiPlayer(playerCount=players)
@@ -67,6 +72,7 @@ def draw(dt, multiPlayer, triangle):
     global inputRequest
     global frames
     global playerColorsRepeated
+    global playerLabels
 
     frames += 1
     
@@ -108,7 +114,6 @@ def draw(dt, multiPlayer, triangle):
 
     with Timer(text="INP {:.8f}"):
         if inputRequest.done():
-            print("new inputs!")
             inputJSON = json.loads(inputRequest.result().content)
             inputRequest = requestsSession.get('https://input.yellowtech.ch/input')
             
@@ -118,7 +123,6 @@ def draw(dt, multiPlayer, triangle):
                     if inputJSON[p]["input"] != "":
                         inp = np.fromstring(inputJSON[p]["input"], dtype=np.float32, sep=",")
                         input[p] = [inp[0],-inp[1]]
-                        print(input[p])
                 else:
                     input[p] = [0,0]
 
@@ -195,6 +199,15 @@ def draw(dt, multiPlayer, triangle):
         )
 
         # draw the batch in one call -> Superfast
+        batch.draw()
+
+        batch = pyglet.graphics.Batch() # new batch for labels
+        # Draw the player numbers
+        playerCenters = multiPlayer.playerCenters.to_numpy()
+        for p in range(players):
+            playerLabels[p].x, playerLabels[p].y = playerCenters[p] * renderScale
+            playerLabels[p].batch = batch
+
         batch.draw()
 
         # set title to current fps
