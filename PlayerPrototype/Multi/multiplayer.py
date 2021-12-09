@@ -226,8 +226,10 @@ class MultiPlayer:
                 self.links[self.pl2l(p,i)] = ti.Vector([a,b])
 
 
-    def init(self):
-        points, links = self.roundMesh()
+    def init(self, points, links):
+        if self == None and links == None:
+            points, links = self.roundMesh()
+            
         self.init_mesh()
         # self.init_default()
         self.init_with_numpy(points, links)

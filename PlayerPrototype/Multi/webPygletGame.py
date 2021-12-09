@@ -1,12 +1,12 @@
 import taichi as ti
 import numpy as np
 import multiplayer as mpl
-import controller as co
 import time
 from codetiming import Timer
 from requests_futures.sessions import FuturesSession
 import ujson as json
 import pyglet
+import random
 
 ti.init(arch=ti.cpu) # , excepthook=True)
 
@@ -27,18 +27,17 @@ requestsSession = FuturesSession(max_workers=4)
 # array to store all inputs in
 input = np.zeros((players, 2), dtype=np.float32)
 
-multiPlayer.init()
-
-# zones for destruction: x, y, r, time
-deathZones = [[10,10,4,time.time() + 4]]
-
+with open('flubuMeshes/bigRoundRested.npy', 'rb') as f:
+    pos_loaded = np.load(f)
+    edges_loaded = np.load(f)
+    multiPlayer.init(pos_loaded, edges_loaded)
 
 screenRes = 1000
 window = pyglet.window.Window(width=screenRes, height=screenRes)
 pyglet.gl.glClearColor(255, 255, 255, 1.0)
 
-mapSize = 40 #40
-mapOffset = [0,0]
+mapSize = 60 #40
+mapOffset = [-20,-20]
 renderScale = screenRes / mapSize
 
 
@@ -59,6 +58,13 @@ for p in range(players):
 
 playerColorsRepeated = np.array(playerColors).repeat(multiPlayer.vertPerPlayer, axis=0)
 
+
+# zones for destruction: x, y, r, time
+deathZones = [[mapSize/2,mapSize/2,5,time.time() + 4]]
+
+# timer, cooldown, cooldownFactor, how many, howManyMore, size, sizeGrowth
+deathZoneParameters = [time.time() + 2, 4, 0.97, 1.2, 0.15, 4, 0.4]
+
 def draw(dt, multiPlayer, triangle):
     global lastFrame
     global inputRequest
@@ -66,6 +72,9 @@ def draw(dt, multiPlayer, triangle):
     global playerColorsRepeated
     global playerLabels
     global deathZones
+    global deathZoneParameters
+    global mapOffset
+    global mapSize
 
     frames += 1
     window.clear()
@@ -112,9 +121,42 @@ def draw(dt, multiPlayer, triangle):
                 multiPlayer.destruction(zone[0], zone[1], zone[2])
             else:
                 notred = min(255, int(100 + 255/4 * (zone[3] - time.time())))
-                pyglet.shapes.Circle(zone[0] * renderScale, zone[1] * renderScale, zone[2] * renderScale, color=[255, notred, notred]).draw()
-
+                circle = pyglet.shapes.Circle((zone[0] - mapOffset[0]) * renderScale, (zone[1] - mapOffset[1]) * renderScale, zone[2] * renderScale, color=[255, 0, 0])
+                circle.opacity = 255-notred
+                circle.draw()
+        
         deathZones = [x for x in deathZones if x[3] > current]
+
+        # timer, cooldown, cooldownFactor, how many, speedupFactor, size, sizeGrowthFactor
+        # time to create new zones
+        if deathZoneParameters[0] < current:
+            # how many
+            n = round(deathZoneParameters[3])
+            
+            # how big
+            r = deathZoneParameters[5]
+
+            # when
+            t = deathZoneParameters[1]
+
+            # zones for destruction: x, y, r, time
+            newZones = [[random.uniform(0,mapSize) + mapOffset[0],
+                        random.uniform(0,mapSize) + mapOffset[1],
+                        r/2 + random.uniform(0, r/2),
+                         current + 4
+                        ] for i in range(n)]
+
+            deathZones += newZones
+
+            # prepare next round
+            deathZoneParameters = [current + deathZoneParameters[1],
+                                    max(1,deathZoneParameters[1] * deathZoneParameters[2]),
+                                    deathZoneParameters[2],
+                                    deathZoneParameters[3] + deathZoneParameters[4],
+                                    deathZoneParameters[4],
+                                    deathZoneParameters[5] + deathZoneParameters[6],
+                                    deathZoneParameters[6]]
+
 
         if frames % 10 == 0:
             multiPlayer.killBorders(mapOffset[0], mapOffset[1], mapSize)
@@ -156,31 +198,31 @@ def draw(dt, multiPlayer, triangle):
         # get enables mask and use it to get enabled dots
         mask = multiPlayer.enabled.to_numpy()
         mask = list(map(lambda x: False if x > 0 else True,mask))
-        allDots = multiPlayer.pos.to_numpy()
+        allDots = multiPlayer.pos.to_numpy() - mapOffset
         allDots *= renderScale
         dots = np.delete(allDots, list(mask), axis=0)
-
-        # Draw the forces
-        forces = multiPlayer.f.to_numpy()
-        vel = multiPlayer.vel.to_numpy()
-        forces = np.delete(forces, mask, axis=0)
-        vel = np.delete(vel, mask, axis=0)
         count = dots.shape[0]
 
-        # Draw Forces and Velocities
-        buf = np.zeros((count*2,2), dtype=np.float32)
-        buf[0::2] = dots
-        buf[1::2] = dots + (forces*renderScale * 0.004)
-        linkList = batch.add(count * 2, pyglet.gl.GL_LINES, None,
-            ('v2f', buf.flatten()),
-            ('c3B', (200,0,0) * (count * 2))
-        )
+        # # Draw the forces
+        # forces = multiPlayer.f.to_numpy()
+        # vel = multiPlayer.vel.to_numpy()
+        # forces = np.delete(forces, mask, axis=0)
+        # vel = np.delete(vel, mask, axis=0)
 
-        buf[1::2] = dots + (vel*renderScale * 0.05)
-        linkList = batch.add(count * 2, pyglet.gl.GL_LINES, None,
-            ('v2f', buf.flatten()),
-            ('c3B', (0,200,0) * (count * 2))
-        )
+        # # Draw Forces and Velocities
+        # buf = np.zeros((count*2,2), dtype=np.float32)
+        # buf[0::2] = dots
+        # buf[1::2] = dots + (forces*renderScale * 0.004)
+        # linkList = batch.add(count * 2, pyglet.gl.GL_LINES, None,
+        #     ('v2f', buf.flatten()),
+        #     ('c3B', (200,0,0) * (count * 2))
+        # )
+
+        # buf[1::2] = dots + (vel*renderScale * 0.05)
+        # linkList = batch.add(count * 2, pyglet.gl.GL_LINES, None,
+        #     ('v2f', buf.flatten()),
+        #     ('c3B', (0,200,0) * (count * 2))
+        # )
 
         # Get the springs
         links = multiPlayer.links.to_numpy()
@@ -210,7 +252,8 @@ def draw(dt, multiPlayer, triangle):
 
         batch = pyglet.graphics.Batch() # new batch for labels
         # Draw the player numbers
-        playerCenters = multiPlayer.playerCenters.to_numpy()
+        playerCenters = multiPlayer.playerCenters.to_numpy() - mapOffset
+        print(playerCenters[0] + mapOffset)
         for p in range(players):
             if playerAlive[p]:
                 playerLabels[p].x, playerLabels[p].y = playerCenters[p] * renderScale
