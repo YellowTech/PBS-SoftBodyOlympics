@@ -8,16 +8,6 @@ from requests_futures.sessions import FuturesSession
 import ujson as json
 import pyglet
 
-def blend(color, alpha, base=[255,255,255]):
-    '''
-    color should be a 3-element iterable,  elements in [0,255]
-    alpha should be a float in [0,1]
-    base should be a 3-element iterable, elements in [0,255] (defaults to white)
-    '''
-    out = [int(round((alpha * color[i]) + ((1 - alpha) * base[i]))) for i in range(3)]
-
-    return out[0] * 16**4 + out[1] * 255 * 16**2 + out[2]
-
 ti.init(arch=ti.cpu) # , excepthook=True)
 
 players = 5 # number of players
@@ -27,6 +17,7 @@ playerLabels = [pyglet.text.Label(str(x),
                           font_size=30,
                           x=0, y=0,
                           anchor_x='center', anchor_y='center') for x in range(players)]
+playerAlive = [True for x in range(players)] # wether player counts as alive
 
 # the big boy
 multiPlayer = mpl.MultiPlayer(playerCount=players)
@@ -38,18 +29,21 @@ input = np.zeros((players, 2), dtype=np.float32)
 
 multiPlayer.init()
 
+# zones for destruction: x, y, r, time
+deathZones = [[10,10,4,time.time() + 4]]
+
 
 screenRes = 1000
 window = pyglet.window.Window(width=screenRes, height=screenRes)
 pyglet.gl.glClearColor(255, 255, 255, 1.0)
 
-renderScale = screenRes / 1000 * 30
+mapSize = 40
+mapOffset = [0,0]
+renderScale = screenRes / mapSize
 
 
 # frame timer to find dt
 lastFrame = time.time() - (1000/60)
-deathTimer = 5.0
-nextDeath = time.time() + deathTimer
 frames = 0
 inputRequest = requestsSession.get('https://input.yellowtech.ch/input')
 
@@ -67,15 +61,13 @@ playerColorsRepeated = np.array(playerColors).repeat(multiPlayer.vertPerPlayer, 
 
 def draw(dt, multiPlayer, triangle):
     global lastFrame
-    global deathTimer
-    global nextDeath
     global inputRequest
     global frames
     global playerColorsRepeated
     global playerLabels
+    global deathZones
 
     frames += 1
-    
     window.clear()
 
     current = time.time()
@@ -86,31 +78,43 @@ def draw(dt, multiPlayer, triangle):
     if dt > 0.02: # slowdown if under 30 fps
         dt = 0.02 # keep the matrix from glitching
 
-# ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
-# ▀█▄░▄█░░░█▄▄▐▀█▀▌▐▀█░▀█░▀█▄░▐▀░ 
-# ░█▐█▀▐░░▐▄██░░▌░░▐▄▌░░▌░░░██▀░░ 
-# ░█░▌░▐░░▌▀██░░▌░░▐▀▄░░▌░▐▀░▀█▄░ 
-# ▄▌░░░▀░▀░░▀▀░▀▀▀░▀░▀▀░▀░▀░░░░▀▀
-# ░░░░░░░░░░▄▄▄▄▄▄░░░░░░░░░░░░░░░
-# ░░░░░░░░████▀▀███░░░░░░░░░░░░░░
-# ░░░░░░░███░░░░░▀██░░░░░░░░░░░░░
-# ░░░░░░░███▄░▄▄▄▄██░░░░░░░░░░░░░
-# ░░░░░░░████▀▀████▀░░░░░░░░░░░░░
-# ░░░░░░░██▄█▄▄░░░░░░░░░░░░░░░░░░
-# ░░░░░░░░████▄▄░░░░░░░░░░░░░░░░░
-# ░░░░░░░░░██▀░░▄█▄░░░░░░░░░░░░░░
-# ░░░░░░░░░████████▄░░░░░░░░░░░░░
-# ░░░░░░░░░█████████▄▄▄▄░░░░░░░░░
-# ░░░░░░░░▄████████████████▄▄░░░░
-# ░░░░░░▄████████████████████░░░░
-# ░░░▄████████████████████████░░░
-# ░░██████████████████████████▄░░
-# ░████████████████████████████░░
-# ░████████████████████████████░░
-# ░█████████████████████████████░
-# ░█████████████████████████████░
-# ██████████████████████████████░
-# ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+        # ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+        # ▀█▄░▄█░░░█▄▄▐▀█▀▌▐▀█░▀█░▀█▄░▐▀░ 
+        # ░█▐█▀▐░░▐▄██░░▌░░▐▄▌░░▌░░░██▀░░ 
+        # ░█░▌░▐░░▌▀██░░▌░░▐▀▄░░▌░▐▀░▀█▄░ 
+        # ▄▌░░░▀░▀░░▀▀░▀▀▀░▀░▀▀░▀░▀░░░░▀▀
+        # ░░░░░░░░░░▄▄▄▄▄▄░░░░░░░░░░░░░░░
+        # ░░░░░░░░████▀▀███░░░░░░░░░░░░░░
+        # ░░░░░░░███░░░░░▀██░░░░░░░░░░░░░
+        # ░░░░░░░███▄░▄▄▄▄██░░░░░░░░░░░░░
+        # ░░░░░░░████▀▀████▀░░░░░░░░░░░░░
+        # ░░░░░░░██▄█▄▄░░░░░░░░░░░░░░░░░░
+        # ░░░░░░░░████▄▄░░░░░░░░░░░░░░░░░
+        # ░░░░░░░░░██▀░░▄█▄░░░░░░░░░░░░░░
+        # ░░░░░░░░░████████▄░░░░░░░░░░░░░
+        # ░░░░░░░░░█████████▄▄▄▄░░░░░░░░░
+        # ░░░░░░░░▄████████████████▄▄░░░░
+        # ░░░░░░▄████████████████████░░░░
+        # ░░░▄████████████████████████░░░
+        # ░░██████████████████████████▄░░
+        # ░████████████████████████████░░
+        # ░████████████████████████████░░
+        # ░█████████████████████████████░
+        # ░█████████████████████████████░
+        # ██████████████████████████████░
+        # ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+
+    with Timer(text="DES {:.8f}"):
+        for zone in deathZones:
+        # [10,10,4,time.time() + 4]
+            if(current > zone[3]):
+                notred = 255
+                multiPlayer.destruction(zone[0], zone[1], zone[2])
+            else:
+                notred = min(255, int(100 + 255/4 * (zone[3] - time.time())))
+                pyglet.shapes.Circle(zone[0] * renderScale, zone[1] * renderScale, zone[2] * renderScale, color=[255, notred, notred]).draw()
+
+        deathZones = [x for x in deathZones if x[3] > current]
 
     with Timer(text="INP {:.8f}"):
         if inputRequest.done():
@@ -128,26 +132,23 @@ def draw(dt, multiPlayer, triangle):
 
         multiPlayer.set_input(input)  # update the player controller map
 
-    with Timer(text="SIM {:.8f}"):
+    with Timer(text="SIM {:.8f}"):        
         epochs = 10 # balance stability with performance
         dt = dt/epochs # adapt dt to #epochs
         for _ in range(epochs):
             multiPlayer.advance(dt)  # advance the simulation
 
-    with Timer(text="GUI {:.8f}"):
-        # draw death circle
-        if nextDeath < current:
-            # death now!
-            nextDeath += deathTimer
-            # multiPlayer.destruction(renderScale/2, renderScale/2, 5)
-        
-        alpha = (nextDeath - current) / deathTimer
-        color = blend([255,0,0], alpha)
+        # Kill players that should be dead
+        playerVertAlive = multiPlayer.playerVertsActive.to_numpy()
+        for p in range(players):
+            if playerAlive[p]:
+                if playerVertAlive[p] < 5:
+                    playerAlive[p] = False
+                    multiPlayer.killPlayer(p)
 
-        # pg.draw.circle(window, color, (500,500), 7.5*renderScale)
-        # gui.circle((0.5, 0.5), color, radius = 7.5*renderScale)
-
+    with Timer(text="GUI1 {:.8f}"):
         batch = pyglet.graphics.Batch()
+        
         # get enables mask and use it to get enabled dots
         mask = multiPlayer.enabled.to_numpy()
         mask = list(map(lambda x: False if x > 0 else True,mask))
@@ -201,12 +202,17 @@ def draw(dt, multiPlayer, triangle):
         # draw the batch in one call -> Superfast
         batch.draw()
 
+    with Timer(text="GUI2 {:.8f}"):
+
         batch = pyglet.graphics.Batch() # new batch for labels
         # Draw the player numbers
         playerCenters = multiPlayer.playerCenters.to_numpy()
         for p in range(players):
-            playerLabels[p].x, playerLabels[p].y = playerCenters[p] * renderScale
-            playerLabels[p].batch = batch
+            if playerAlive[p]:
+                if(p == 0):
+                    print(playerCenters[p])
+                playerLabels[p].x, playerLabels[p].y = playerCenters[p] * renderScale
+                playerLabels[p].batch = batch
 
         batch.draw()
 

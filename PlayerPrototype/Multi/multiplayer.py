@@ -126,19 +126,30 @@ class MultiPlayer:
     def destruction(self, x:float, y:float, r:float):
         deathCenter = ti.Vector([x,y])
         # loop through all points and disable those in range
-        for i in range(self.vertCount):            
-            # check if in death distance
-            diff = self.pos[i] - deathCenter
-            dist = diff.norm()
-            if (dist < r + self.collRadius):
-                self.enabled[i] = False
+        for i in range(self.vertCount):     
+            if(self.enabled[i]):
+                # check if in death distance
+                diff = self.pos[i] - deathCenter
+                dist = diff.norm()
+                if (dist < r + self.collRadius):
+                    self.enabled[i] = False
 
         # disable all links with a disabled points
         for l in range(self.linkCount):
-            a = self.links[l][0]
-            b = self.links[l][1]
-            if not self.enabled[a] or not self.enabled[b]:
-                self.links[l] = ti.Vector([-1,-1])
+            if(self.links[l][0] != -1):
+                a = self.links[l][0]
+                b = self.links[l][1]
+                if not self.enabled[a] or not self.enabled[b]:
+                    self.links[l] = ti.Vector([-1,-1])
+
+    # disable all player verts and links
+    @ti.kernel
+    def killPlayer(self, p:int):
+        for i in range(self.pv2v(p,0), self.pv2v(p,self.vertPerPlayer)):
+            self.enabled[i] = False
+        
+        for l in range(self.pl2l(p,0), self.pl2l(p,self.linkPerPlayer)):
+            self.links[l] = ti.Vector([-1,-1])
 
 
     @ti.kernel
