@@ -5,7 +5,7 @@ zero = ti.Vector([0.0, 0.0])
 
 @ti.data_oriented
 class MultiPlayer:
-    def __init__(self, playerCount: int = 1, speed: float = 1000.0, damping: float = 20.0):
+    def __init__(self, playerCount: int = 1, speed: float = 1500.0, damping: float = 15.0):
         self.playerCount = ti.static(playerCount)
 
         self.speed = speed
@@ -105,8 +105,9 @@ class MultiPlayer:
                 self.pos[i] += dt * self.vel[i]
 
         # calculate the mean center
-        x = self.frame[0] % self.playerCount
-        for p in range(x, x+1):
+        # x = self.frame[0] % self.playerCount
+        # for p in range(x, x+1):
+        for p in range(self.playerCount):
             self.playerCenters[p] = zero # reset position
             self.playerVertsActive[p] = 0
             # add to centers
@@ -151,6 +152,27 @@ class MultiPlayer:
         for l in range(self.pl2l(p,0), self.pl2l(p,self.linkPerPlayer)):
             self.links[l] = ti.Vector([-1,-1])
 
+    # destroy all points that are outside play area
+    @ti.kernel
+    def killBorders(self, offsetX: float, offsetY: float, size: float):
+        minim = ti.Vector([offsetX,offsetY])
+        maxim = ti.Vector([offsetX + size,offsetY + size])
+        # loop through all points and disable those outside the area
+        for i in range(self.vertCount):     
+            if(self.enabled[i]):
+                # check if outside the area
+                pos = self.pos[i]
+                if (pos[0] < minim[0] or pos[0] > maxim[0]
+                    or pos[1] < minim[1] or pos[1] > maxim[1] ):
+                    self.enabled[i] = False
+
+        # disable all links with a disabled points
+        for l in range(self.linkCount):
+            if(self.links[l][0] != -1):
+                a = self.links[l][0]
+                b = self.links[l][1]
+                if not self.enabled[a] or not self.enabled[b]:
+                    self.links[l] = ti.Vector([-1,-1])
 
     @ti.kernel
     def init_default(self):

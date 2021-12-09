@@ -10,7 +10,7 @@ import pyglet
 
 ti.init(arch=ti.cpu) # , excepthook=True)
 
-players = 5 # number of players
+players = 20 # number of players
 playerColors = [[0,0,255] for i in range(players)]
 playerLabels = [pyglet.text.Label(str(x),
                           font_name='Helvetica', color=(130, 130, 130, 255),
@@ -37,7 +37,7 @@ screenRes = 1000
 window = pyglet.window.Window(width=screenRes, height=screenRes)
 pyglet.gl.glClearColor(255, 255, 255, 1.0)
 
-mapSize = 40
+mapSize = 40 #40
 mapOffset = [0,0]
 renderScale = screenRes / mapSize
 
@@ -116,6 +116,9 @@ def draw(dt, multiPlayer, triangle):
 
         deathZones = [x for x in deathZones if x[3] > current]
 
+        if frames % 10 == 0:
+            multiPlayer.killBorders(mapOffset[0], mapOffset[1], mapSize)
+
     with Timer(text="INP {:.8f}"):
         if inputRequest.done():
             inputJSON = json.loads(inputRequest.result().content)
@@ -143,6 +146,7 @@ def draw(dt, multiPlayer, triangle):
         for p in range(players):
             if playerAlive[p]:
                 if playerVertAlive[p] < 5:
+                    print(f"Eliminated Player {p}")
                     playerAlive[p] = False
                     multiPlayer.killPlayer(p)
 
@@ -209,8 +213,6 @@ def draw(dt, multiPlayer, triangle):
         playerCenters = multiPlayer.playerCenters.to_numpy()
         for p in range(players):
             if playerAlive[p]:
-                if(p == 0):
-                    print(playerCenters[p])
                 playerLabels[p].x, playerLabels[p].y = playerCenters[p] * renderScale
                 playerLabels[p].batch = batch
 
