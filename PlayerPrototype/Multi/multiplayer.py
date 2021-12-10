@@ -206,17 +206,27 @@ class MultiPlayer:
                 self.enabled[i] = False
 
     # not a kernel because of numpy
-    def init_with_numpy(self, points, links):
+    def init_with_numpy(self, points, links, mapSize, offsetX, offsetY):
+        rows = 3
+        # while not all players fit inside a grid without outermost nodes
+        while (rows - 2)**2 < self.playerCount:
+            rows += 1
+
+        rowSpace = mapSize / rows
+
         for p in range(self.playerCount):
+            px = p % (rows-2)
+            py = p // (rows-2)
+            offPX = offsetX + 1.5*rowSpace + px * rowSpace
+            offPY = offsetY + 1.5*rowSpace + py * rowSpace
+
             for i, point in enumerate(points):
                 self.enabled[self.pv2v(p,i)] = True
 
                 # move and scale
-                point *= self.radius
-                # point[0] += 5
 
-                x = point[0] + 3*p
-                y = point[1]
+                x = point[0] + offPX
+                y = point[1] + offPY
                 self.pos[self.pv2v(p,i)] = ti.Vector([x,y])
 
             for i, link in enumerate(links):
@@ -226,13 +236,13 @@ class MultiPlayer:
                 self.links[self.pl2l(p,i)] = ti.Vector([a,b])
 
 
-    def init(self, points, links):
+    def init(self, points, links, mapSize, offsetX, offsetY):
         if self == None and links == None:
             points, links = self.roundMesh()
-            
+
         self.init_mesh()
         # self.init_default()
-        self.init_with_numpy(points, links)
+        self.init_with_numpy(points, links, mapSize, offsetX, offsetY)
 
     def set_input(self, externalInput):
         # print("external " + str(externalInput))

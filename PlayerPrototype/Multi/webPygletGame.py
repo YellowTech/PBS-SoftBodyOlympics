@@ -27,11 +27,6 @@ requestsSession = FuturesSession(max_workers=4)
 # array to store all inputs in
 input = np.zeros((players, 2), dtype=np.float32)
 
-with open('flubuMeshes/bigRoundRested.npy', 'rb') as f:
-    pos_loaded = np.load(f)
-    edges_loaded = np.load(f)
-    multiPlayer.init(pos_loaded, edges_loaded)
-
 screenRes = 1000
 window = pyglet.window.Window(width=screenRes, height=screenRes)
 pyglet.gl.glClearColor(255, 255, 255, 1.0)
@@ -39,6 +34,11 @@ pyglet.gl.glClearColor(255, 255, 255, 1.0)
 mapSize = 60 #40
 mapOffset = [-20,-20]
 renderScale = screenRes / mapSize
+
+with open('flubuMeshes/bigRoundRested.npy', 'rb') as f:
+    pos_loaded = np.load(f)
+    edges_loaded = np.load(f)
+    multiPlayer.init(pos_loaded, edges_loaded, mapSize, mapOffset[0], mapOffset[1])
 
 
 # frame timer to find dt
@@ -54,7 +54,10 @@ triangle = np.array([-5.0, -2.0, 0.0, 7.0, 5.0, -2.0]).reshape(3,2).transpose().
 
 for p in range(players):
     h = responseJSON[p]["color"].lstrip('#')
-    playerColors[p] = list(int(h[i:i+2], 16) for i in (0, 2, 4))
+    color = list(int(h[i:i+2], 16) for i in (0, 2, 4))
+    playerColors[p] = color
+    playerLabels[p].color = (255-color[0],255-color[1],255-color[2],255)
+
 
 playerColorsRepeated = np.array(playerColors).repeat(multiPlayer.vertPerPlayer, axis=0)
 
