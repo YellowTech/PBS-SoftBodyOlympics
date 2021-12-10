@@ -124,7 +124,7 @@ def draw(dt, multiPlayer, triangle):
                 multiPlayer.destruction(zone[0], zone[1], zone[2])
             else:
                 notred = min(255, int(100 + 255/4 * (zone[3] - time.time())))
-                circle = pyglet.shapes.Circle((zone[0] - mapOffset[0]) * renderScale, (zone[1] - mapOffset[1]) * renderScale, zone[2] * renderScale, color=[255, 0, 0])
+                circle = pyglet.shapes.Circle((zone[0] - mapOffset[0]) * renderScale, (zone[1] - mapOffset[1]) * renderScale, zone[2] * renderScale, color=[255, 0, 0], segments=20)
                 circle.opacity = 255-notred
                 circle.draw()
         
