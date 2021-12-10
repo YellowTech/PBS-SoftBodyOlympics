@@ -62,6 +62,20 @@ class MultiPlayer:
             p = self.v2p(i)
             self.vel[i] += dt * self.speed * self.input[p]  # apply the controller input
 
+        # calculate the mean center
+        # x = self.frame[0] % self.playerCount
+        # for p in range(x, x+1):
+        for p in range(self.playerCount):
+            self.playerCenters[p] = zero # reset position
+            self.playerVertsActive[p] = 0
+            # add to centers
+            for i in range(self.pv2v(p,0), self.pv2v(p,self.vertPerPlayer)):
+                if(self.enabled[i]):
+                    self.playerCenters[p] += self.pos[i]
+                    self.playerVertsActive[p] += 1
+
+            self.playerCenters[p] /= self.playerVertsActive[p]
+
         for i in range(self.vertCount):
             self.f[i] = zero # reset force
 
@@ -83,16 +97,20 @@ class MultiPlayer:
                         self.f[link[1]] += diff.normalized() * (self.spring * (self.radius - dist))
                 
                 # intercolliding forces
-                # very slow, loop through aaaaaaall points
-                for j in range(self.vertCount):
-                    if self.enabled[j] and j != i: # self.v2p(j) != p:
-                        diff = self.pos[j] - self.pos[i]
-                        dist = diff.norm()
-                        if dist < self.collRadius:
-                            # colliding, push apart
-                            # print("Colliding:",i,j,dist,self.collRadius,sep=",",end="\n")
-                            # Todo : optimize such that 2 points must only be compared once, not twice like right now
-                            self.f[i] -= diff.normalized() * (self.spring  * (-1 + (1.0 + self.collRadius - dist)**5)) # * self.spring * diff.normalized()
+                # loop through all other players and if the player is close enough, do collision
+                for pOther in range(self.playerCount):
+                    if (self.playerCenters[p] - self.playerCenters[pOther]).norm() < self.radius * 10:
+                        for j in range(self.pv2v(pOther,0), self.pv2v(pOther,self.vertPerPlayer)):
+                            if self.enabled[j] and j!=i and i<j:
+                                diff = self.pos[j] - self.pos[i]
+                                dist = diff.norm()
+                                if dist < self.collRadius:
+                                    # colliding, push apart
+                                    # print("Colliding:",i,j,dist,self.collRadius,sep=",",end="\n")
+                                    # Todo : optimize such that 2 points must only be compared once, not twice like right now
+                                    f = diff.normalized() * (self.spring  * (-1 + (1.0 + self.collRadius - dist)**5))
+                                    self.f[i] -= f
+                                    self.f[j] += f
 
 
         # simplectiv Euler
@@ -103,23 +121,6 @@ class MultiPlayer:
                 self.f[i] -= self.damping * self.vel[i]
                 self.vel[i] += self.f[i] * dt
                 self.pos[i] += dt * self.vel[i]
-
-        # calculate the mean center
-        # x = self.frame[0] % self.playerCount
-        # for p in range(x, x+1):
-        for p in range(self.playerCount):
-            self.playerCenters[p] = zero # reset position
-            self.playerVertsActive[p] = 0
-            # add to centers
-            for i in range(self.pv2v(p,0), self.pv2v(p,self.vertPerPlayer)):
-                if(self.enabled[i]):
-                    self.playerCenters[p] += self.pos[i]
-                    self.playerVertsActive[p] += 1
-
-
-            # self.playerCenters[p] /= ti.Vector([self.playerVertsActive[p],  self.playerVertsActive[p]])
-            self.playerCenters[p] /= self.playerVertsActive[p]
-
         
         self.frame[0] += 1
 
