@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang=en>
+<head>
+<meta charset=utf-8>
+<meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0, maximum-scale=1.0" /> 
+<title>Game Client</title>
+<style type="text/css"> 
+	
+	* {
+	  -webkit-touch-callout: none; /* prevent callout to copy image, etc when tap to hold */
+	  -webkit-text-size-adjust: none; /* prevent webkit from resizing text to fit */
+	/* make transparent link selection, adjust last value opacity 0 to 1.0 */
+	  -webkit-tap-highlight-color: rgba(0,0,0,0); 
+	  -webkit-user-select: none; /* prevent copy paste, to allow, change 'none' to 'text' */
+	  -webkit-tap-highlight-color: rgba(0,0,0,0); 
+	}
+	
+	body {
+		background-color: #000000;
+		margin: 0px;
+	}
+	canvas {
+		background-color:#111133;
+		display:block; 
+		position:absolute; 
+	}
+	.container {
+		width:auto;
+		text-align:center;
+		background-color:#ff0000;
+	}
+</style>
+
+
+</head>
+<body onload = "init()">
+<script>
+
+var canvas,
+ 	c, // c is the canvas' context 2D
+	container;
+
+setupCanvas();
+
+var moveLeft = false,
+    moveRight = false;
+
+var mouseX, mouseY, 
+    leftMouseButtonOnlyDown = false,
+	touches = []; // array of touch vectors
+
+setInterval(draw, 1000/35); 
+
+var id = -1,
+    color,
+    textColor,
+    password,
+    full = false;
+
+function pickTextColorBasedOnBgColorAdvanced(bgColor, lightColor, darkColor) {
+  var color = (bgColor.charAt(0) === '#') ? bgColor.substring(1, 7) : bgColor;
+  var r = parseInt(color.substring(0, 2), 16); // hexToR
+  var g = parseInt(color.substring(2, 4), 16); // hexToG
+  var b = parseInt(color.substring(4, 6), 16); // hexToB
+  var uicolors = [r / 255, g / 255, b / 255];
+  var c = uicolors.map((col) => {
+    if (col <= 0.03928) {
+      return col / 12.92;
+    }
+    return Math.pow((col + 0.055) / 1.055, 2.4);
+  });
+  var L = (0.2126 * c[0]) + (0.7152 * c[1]) + (0.0722 * c[2]);
+  return (L > 0.179) ? darkColor : lightColor;
+}
+
+function LightenDarkenColor(col,amt) {
+    var usePound = false;
+    if ( col[0] == "#" ) {
+        col = col.slice(1);
+        usePound = true;
+    }
+    var num = parseInt(col,16);
+    var r = (num >> 16) + amt;
+    if ( r > 255 ) r = 255;
+    else if  (r < 0) r = 0;
+    var b = ((num >> 8) & 0x00FF) + amt;
+    if ( b > 255 ) b = 255;
+    else if  (b < 0) b = 0;
+    var g = (num & 0x0000FF) + amt;
+    if ( g > 255 ) g = 255;
+    else if  ( g < 0 ) g = 0;
+    return (usePound?"#":"") + (g | (b << 8) | (r << 16)).toString(16);
+}
+
+fetch('assign')
+  .then(response => {
+        //console.log(response)
+        if (!response.ok) {
+            full = true;
+            throw new Error('Network response was not ok');
+        }
+        return response.json()
+    })
+  .then(data => {
+    //console.log(data);
+    id = data.id;
+    color = data.color;
+    textColor = pickTextColorBasedOnBgColorAdvanced(color, '#eaeded', '#232f3D');
+    password = data.password;
+    setInterval(submitInput, 1000/8);
+  });
+
+
+canvas.addEventListener('touchstart', processEvents, false );
+canvas.addEventListener('touchmove', processEvents, false );
+canvas.addEventListener('touchend', processEvents, false );
+canvas.addEventListener('touchcancel', processEvents, false );
+canvas.addEventListener('mousedown', processEvents, false );
+canvas.addEventListener('mouseup', processEvents, false );
+canvas.addEventListener('mousemove', processEvents, false );
+canvas.addEventListener('mouseover', processEvents, false );
+canvas.addEventListener('mouseout', processEvents, false );
+canvas.addEventListener('mouseenter', processEvents, false );
+canvas.addEventListener('mouseleave', processEvents, false );
+window.onorientationchange = resetCanvas;  
+window.onresize = resetCanvas;  
+
+
+function resetCanvas (e) {  
+ 	// resize the canvas - but remember - this clears the canvas too. 
+  	canvas.width = window.innerWidth; 
+	canvas.height = window.innerHeight;
+	
+	//make sure we scroll to the top left. 
+	window.scrollTo(0,0); 
+
+    c.strokeStyle = "#ffffff";
+	c.lineWidth =2;	
+    c.font = 'bold 48px Helvetica';
+    c.textAlign = "center";
+
+    x = canvas.width/2;
+    y = canvas.height/2;
+
+    radius = Math.min(x,y)/2
+}
+
+function init(){
+	
+}
+
+function draw() {
+  
+	c.clearRect(0,0,canvas.width, canvas.height); 
+    // handleButtons();
+
+    // Create gradient
+    var grd = c.createLinearGradient(0, 0, canvas.width/2, canvas.height);
+    if (moveLeft) {
+        grd.addColorStop(0, "#" + LightenDarkenColor("1d2b64", -10));
+        grd.addColorStop(1, "#" + LightenDarkenColor("c78599", -50));
+    } else {
+        grd.addColorStop(0, "#1d2b64");
+        grd.addColorStop(1, "#c78599");
+    }
+
+    // // Fill with gradient
+    // c.fillStyle = grd;
+    // c.fillRect(0, 0, canvas.width/2, canvas.height);
+	// //c.fillText("hello", 0,0); 
+
+    // var grd = c.createLinearGradient(canvas.width/2, canvas.height, 0, 0);
+    //  if (moveRight) {
+    //     grd.addColorStop(0, "#" + LightenDarkenColor("5c258d", -10));
+    //     grd.addColorStop(1, "#" + LightenDarkenColor("4389a2", -50));
+    // } else {
+    //     grd.addColorStop(0, "#5c258d");
+    //     grd.addColorStop(1, "#4389a2");
+    // }
+
+    // // Fill with gradient
+    // c.fillStyle = grd;
+    // c.fillRect(canvas.width/2, 0, canvas.width/2, canvas.height);
+
+    // c.fillStyle	 = "#eaeded";
+	// c.fillText("Left", canvas.width/4, canvas.height/2);
+    // c.fillText("Right", canvas.width/4*3, canvas.height/2);
+
+    c.beginPath();
+    c.lineWidth = 5;
+    c.strokeStyle = "#00FF00";
+    c.moveTo(canvas.width/2, canvas.height/2);
+    c.lineTo(x, y);
+    c.stroke(); 
+
+    c.beginPath();
+    c.strokeStyle = "#FF0000";
+    c.arc(canvas.width/2,canvas.height/2,radius,0,2*Math.PI);
+    c.stroke();
+
+    if (full) {
+        c.fillStyle = "red"
+        c.fillRect(canvas.width/6, canvas.height/6, canvas.width/3*2, canvas.height/3*2);
+        c.fillStyle = "#eaeded";
+        c.font = 'bold 20px Helvetica';
+        c.fillText("Game is full", canvas.width/2, canvas.height/2);
+    } else if (id === -1) {
+        c.fillStyle = "white"
+        c.fillRect(0, 0, canvas.width, canvas.height/8);
+        c.fillStyle = "#232F3D";
+        c.fillText("Loading", canvas.width/2, canvas.height/10);
+    } else {
+        c.fillStyle = color;
+        c.fillRect(0, 0, canvas.width, canvas.height/8);
+        c.fillStyle = textColor;        
+        c.fillText("Connected as " + id, canvas.width/2, canvas.height/10);
+    }
+	
+}
+
+// function handleButtons() {
+//     moveLeft = false;
+//     moveRight = false;
+    
+//     for(var i=0; i<touches.length; i++){
+//         var touch = touches[i]; 
+//         if(touch.clientX/canvas.width < 0.5) {
+//             moveLeft = true;
+//         } else {
+//             moveRight = true;
+//         }
+//     }
+
+//     if(leftMouseButtonOnlyDown) {
+//         if(mouseX/canvas.width < 0.5) {
+//             moveLeft = true;
+//         } else {
+//             moveRight = true;
+//         }
+//     }
+
+//     //console.log("right: " + moveRight + ", left: " + moveLeft);
+// }
+
+function submitInput() {
+    let xin = (x - canvas.width/2) / radius
+    let yin = (y - canvas.height/2) / radius
+    xin = Math.min(Math.max(xin, -1), 1);
+    yin = Math.min(Math.max(yin, -1), 1);
+
+    // limit to length 1
+    let length = Math.sqrt(xin*xin + yin*yin)
+    if(length > 1){
+        xin /= length
+        yin /= length
+    }
+
+    // console.log(xin.toFixed(3), yin, length)
+    
+
+
+    //console.log("submitted");
+    fetch('input?pw=' + password + "&input=" + (xin.toFixed(3)) + "," + (yin.toFixed(3)))
+    .then(response => {
+        //console.log(response)
+    });
+}
+
+function processEvents(e){
+    if(e.type == 'touchstart' || e.type == 'touchmove' || e.type == 'touchend' || e.type == 'touchcancel'){
+        e.preventDefault();
+        var evt = (typeof e.originalEvent === 'undefined') ? e : e.originalEvent;
+        var touch = evt.touches[0] || evt.changedTouches[0];
+        // if(e.type == 'touchend' || e.type == 'touchcancel'){
+        //     console.log(evt.touches)
+        //     console.log(evt.changedTouches)
+        // }
+        if(!evt.touches[0]){
+            x = canvas.width/2
+            y = canvas.height/2
+        } else {
+            x = touch.pageX;
+            y = touch.pageY;
+        }
+    } else if (e.type == 'mousedown' || e.type == 'mouseup' || e.type == 'mousemove' || e.type == 'mouseover'|| e.type=='mouseout' || e.type=='mouseenter' || e.type=='mouseleave') {
+        x = e.clientX;
+        y = e.clientY;
+    }
+    // console.log((x/canvas.width) + ", " + (y / canvas.height))
+}
+
+
+function setupCanvas() {
+	canvas = document.createElement( 'canvas' );
+	c = canvas.getContext( '2d' );
+	container = document.createElement( 'div' );
+	container.className = "container";
+
+	canvas.width = window.innerWidth; 
+	canvas.height = window.innerHeight; 
+	document.body.appendChild( container );
+	container.appendChild(canvas);	
+	
+	resetCanvas();
+}
+
+
+</script>
+</body>
+</html>
