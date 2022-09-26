@@ -1,12 +1,6 @@
-from os import link
 import taichi as ti
 import numpy as np
 import multiplayer as mpl
-import controller as co
-import time
-from codetiming import Timer
-from requests_futures.sessions import FuturesSession
-import ujson as json
 import pyglet
 
 ti.init(arch=ti.cpu) # , excepthook=True)
@@ -16,7 +10,7 @@ players = 1 # number of players
 # the big boy
 multiPlayer = mpl.MultiPlayer(playerCount=players, damping=30)
 
-with open('flubuMeshes/flubbu.npy', 'rb') as f:
+with open('flubbu.npy', 'rb') as f:
     pos_loaded = np.load(f) * 10
     edges_loaded = np.load(f)
     multiPlayer.init(pos_loaded, edges_loaded, 40, -20,-20)
@@ -104,7 +98,7 @@ def draw(dt, multiPlayer, triangle):
         ds = (dots / renderScale + mapOffset)
         ds = ds - np.average(ds, axis=0)
 
-        with open('flubuMeshes/meshOut.npy', 'wb') as f:
+        with open('rested.npy', 'wb') as f:
             np.save(f, ds)
             np.save(f, links)
 

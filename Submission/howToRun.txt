@@ -1,0 +1,46 @@
+Welcome To the Soft Body Olympics!
+
+This folder contains 3 action packed games for you and your friends to play.
+
+To run all files you need the following packages:
+taichi
+ujson
+pyglet
+requests-futures
+codetiming
+numpy
+
+The games should work with the newest version of taichi (0.8.7 at the time of writing) but this version introduced a bug in the GUI Text such that creator.py will crash. For creator.py you must install version 0.8.6.
+
+Here we list all versions that were used at the time of writing:
+python==3.8.12
+taichi==0.8.7
+ujson==4.3.0
+pyglet==1.5.21
+requests-futures==1.0.0
+codetiming==1.3.0
+numpy==1.21.4
+
+With these packages installed you should be able to run the Games inside the Games folder. Every game has it's own python file, eg. DeathZones.py which is the main file to run, a multiplayer.py file which contains the taichi code, and a folder with the used meshes in a numpy format.
+
+Get all players on the website "input.yellowtech.ch/client", also visitable through the included QR Code, and wait for all players to be assigned a number and a color. Then start any of the following files:
+DeathZones.py
+SumoGame.py
+TopDownRaceGame.py
+and play! Have Fun!
+
+
+You can of course host you own input server, as the code is places in the InputServer subfolder. But keep in mind that this requires changing the coded domains in the game files.
+
+You can also create you own meshes using the included MeshCreator. Using the creator.py (watch out for taichi version!) you can create and save a new mesh. Afterwards you should load the new mesh using the meshRester.py program, as it will load the mesh and wait for all forces to balance out. Wait for the program to quit itself, the terminal output shows the current sum of forces and it will quit once these are below 1. It will then save the mesh again. This rested mesh can then be used to play games with.
+
+
+
+
+
+
+
+Troubleshooting:
+"input.yellowtech.ch not reachable": On Tuesday the 14.12.2021 we noticed that some DNS Servers in the eduroam Wifi at ETH fail to serve the entries for the domain although it worked perfectly the days before. We hope that this problem will not persist. A quick workaround is to use a different internet connection than ETH Wifi, like LTE Cellular or cable. Another workaround is to change your DNS server to google's 8.8.8.8 or cloudflare's 1.1.1.1 as they serve the DNS entry.
+
+Another error that we ran into is the taichi update checker, as it failed and crashed on our machines. A workaround is to manually upgrade taichi using pip or conda.
